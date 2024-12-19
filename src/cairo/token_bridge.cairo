@@ -9,7 +9,7 @@ mod TokenBridge {
     use super::super::err_msg::AccessErrors::{
         CALLER_MISSING_ROLE, ZERO_ADDRESS, ALREADY_INITIALIZED, ONLY_APP_GOVERNOR, ONLY_OPERATOR,
         ONLY_TOKEN_ADMIN, ONLY_UPGRADE_GOVERNOR, ONLY_SECURITY_ADMIN, ONLY_SECURITY_AGENT,
-        GOV_ADMIN_CANNOT_RENOUNCE
+        GOV_ADMIN_CANNOT_RENOUNCE, SEC_ADMIN_CANNOT_RENOUNCE
     };
     use super::super::err_msg::ERC20Errors as ERC20Errors;
     use super::super::err_msg::ReplaceErrors as ReplaceErrors;
@@ -35,6 +35,9 @@ mod TokenBridge {
     use super::super::token_bridge_admin_interface::{
         ITokenBridgeAdmin, ITokenBridgeAdminDispatcher, ITokenBridgeAdminDispatcherTrait
     };
+
+    use src::token_migrate_interface::{ITokenMigrate, ITokenMigrateDispatcher};
+
     use super::super::access_control_interface::{
         IAccessControl, RoleId, RoleAdminChanged, RoleGranted, RoleRevoked
     };
@@ -46,10 +49,8 @@ mod TokenBridge {
         OperatorAdded, OperatorRemoved, TokenAdminAdded, TokenAdminRemoved, UpgradeGovernorAdded,
         UpgradeGovernorRemoved,
     };
-    use super::super::erc20_interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-    use super::super::mintable_token_interface::{
-        IMintableTokenDispatcher, IMintableTokenDispatcherTrait
-    };
+    use src::erc20_interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use src::mintable_token_interface::{IMintableTokenDispatcher, IMintableTokenDispatcherTrait};
 
     use super::super::replaceability_interface::{
         ImplementationData, IReplaceable, IReplaceableDispatcher, IReplaceableDispatcherTrait,
@@ -68,7 +69,7 @@ mod TokenBridge {
 
     const SECONDS_IN_DAY: u64 = 86400;
     const DEFAULT_UPGRADE_DELAY: u64 = 0;
-
+    const END_OF_BACK_MIGRATION_TS: u64 = 1751328000; // 2025-07-01 00:00 UTC.
 
     // When storing the remaining quota for today, we add 1 to the value. This is because we want
     // that 0 will mean that it was not set yet.
@@ -105,6 +106,10 @@ mod TokenBridge {
         // It's expected to be non-empty only in a case of an upgrade from such a version.
         //  This case also implies that this is the only token that is served by the bridge.
         l2_token: ContractAddress,
+        // `deprecated_l2_token` is a variable storing the address
+        // of the deprecated l2_token in a scenario of migration of an l2_token
+        // from the contract addressed deprecated_l2_token to the one addressed l2_token.
+        deprecated_l2_token: ContractAddress,
         // --- Replaceability ---
         // Delay in seconds before performing an upgrade.
         upgrade_delay: u64,
@@ -372,6 +377,65 @@ mod TokenBridge {
             // Call mint on l2_token contract.
             IMintableTokenDispatcher { contract_address: l2_token }
                 .permissioned_mint(account: l2_recipient, :amount);
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl TokenMigrate of ITokenMigrate<ContractState> {
+        // Returns the address of the new L2 token.
+        fn get_new_l2_token(self: @ContractState) -> ContractAddress {
+            self.l2_token.read()
+        }
+
+        // Returns the address of the deprecated L2 token.
+        fn get_deprecated_l2_token(self: @ContractState) -> ContractAddress {
+            self.deprecated_l2_token.read()
+        }
+
+        // Migrates caller's balance from deprecated token to new token.
+        fn migrate_balance_to_new_token(ref self: ContractState) {
+            self
+                ._migrate_balance(
+                    account: get_caller_address(),
+                    migrate_from: self.deprecated_l2_token.read(),
+                    migrate_to: self.l2_token.read()
+                );
+        }
+
+        // Backwards migration: Migrates caller's balance from new token to deprecated token.
+        // This function is available only for a limited time.
+        fn migrate_balance_to_deprecated_token(ref self: ContractState) {
+            assert(get_block_timestamp() <= END_OF_BACK_MIGRATION_TS, 'BACK_MIGRATION_NOT_ALLOWED');
+            self
+                ._migrate_balance(
+                    account: get_caller_address(),
+                    migrate_from: self.l2_token.read(),
+                    migrate_to: self.deprecated_l2_token.read()
+                );
+        }
+    }
+
+    #[generate_trait]
+    impl TokenMigrateInternal of _TokenMigrateInternal {
+        // Common impl of balance migration.
+        // Burns the entire balance of account from the `migrate_from` token,
+        // and mints the same amount on the `migrate_to` token.
+        fn _migrate_balance(
+            ref self: ContractState,
+            account: ContractAddress,
+            migrate_from: ContractAddress,
+            migrate_to: ContractAddress
+        ) {
+            let migrate_amount: u256 = IERC20Dispatcher { contract_address: migrate_from }
+                .balance_of(account);
+
+            if migrate_amount != 0 {
+                IMintableTokenDispatcher { contract_address: migrate_from }
+                    .permissioned_burn(:account, amount: migrate_amount);
+
+                IMintableTokenDispatcher { contract_address: migrate_to }
+                    .permissioned_mint(:account, amount: migrate_amount);
+            }
         }
     }
 
@@ -829,6 +893,7 @@ mod TokenBridge {
             let event = Event::SecurityAdminRemoved(
                 SecurityAdminRemoved { removed_account: account, removed_by: get_caller_address() }
             );
+            self.prevent_self_removal(:account, error: SEC_ADMIN_CANNOT_RENOUNCE);
             self._revoke_role_and_emit(role: SECURITY_ADMIN, :account, :event);
         }
 
@@ -860,6 +925,7 @@ mod TokenBridge {
                     removed_account: account, removed_by: get_caller_address()
                 }
             );
+            self.prevent_self_removal(:account, error: GOV_ADMIN_CANNOT_RENOUNCE);
             self._revoke_role_and_emit(role: GOVERNANCE_ADMIN, :account, :event);
         }
 
@@ -907,21 +973,20 @@ mod TokenBridge {
             self._revoke_role_and_emit(role: UPGRADE_GOVERNOR, :account, :event);
         }
 
-        // TODO -  change the fn name to renounce_role when we can have modularity.
-        // TODO -  change to GOVERNANCE_ADMIN_CANNOT_SELF_REMOVE when the 32 characters limitations
-        // is off.
         fn renounce(ref self: ContractState, role: RoleId) {
             assert(role != GOVERNANCE_ADMIN, GOV_ADMIN_CANNOT_RENOUNCE);
+            assert(role != SECURITY_ADMIN, SEC_ADMIN_CANNOT_RENOUNCE);
             self.renounce_role(:role, account: get_caller_address())
-        // TODO add another event? Currently there are two events when a role is removed but
-        // only one if it was renounced.
         }
     }
 
 
     #[generate_trait]
     impl RolesInternal of _RolesInternal {
-        // TODO -  change the fn name to _grant_role when we can have modularity.
+        fn prevent_self_removal(self: @ContractState, account: ContractAddress, error: felt252) {
+            assert(account != get_caller_address(), error);
+        }
+
         fn _grant_role_and_emit(
             ref self: ContractState, role: RoleId, account: ContractAddress, event: Event
         ) {
@@ -932,7 +997,6 @@ mod TokenBridge {
             }
         }
 
-        // TODO -  change the fn name to _revoke_role when we can have modularity.
         fn _revoke_role_and_emit(
             ref self: ContractState, role: RoleId, account: ContractAddress, event: Event
         ) {

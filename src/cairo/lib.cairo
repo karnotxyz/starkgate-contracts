@@ -5,6 +5,7 @@ mod strk;
 mod access_control_interface;
 mod token_bridge_admin_interface;
 mod token_bridge_interface;
+mod token_migrate_interface;
 mod erc20_interface;
 mod mintable_token_interface;
 mod mintable_lock_interface;
@@ -16,6 +17,7 @@ mod token_test_setup_interface;
 // Modules.
 mod token_bridge;
 mod legacy_bridge_eic;
+mod bridge_migration_prep_eic;
 mod set_as_single_eic;
 mod roles_init_eic;
 mod update_712_vars_eic;

@@ -367,6 +367,27 @@ mod roles_test {
         _test_register_and_remove_governance_admin(:contract_address);
     }
 
+
+    #[test]
+    #[available_gas(30000000)]
+    #[should_panic(expected: ('GOV_ADMIN_CANNOT_SELF_REMOVE', 'ENTRYPOINT_FAILED',))]
+    fn test_self_remove_governance_admin() {
+        let token_bridge_address = deploy_token_bridge();
+        let token_bridge_roles = get_roles(contract_address: token_bridge_address);
+        assert(token_bridge_roles.is_governance_admin(account: caller()), 'NOT_GOV_ADMIN');
+        token_bridge_roles.remove_governance_admin(account: caller());
+    }
+
+    #[test]
+    #[available_gas(30000000)]
+    #[should_panic(expected: ('SEC_ADMIN_CANNOT_SELF_REMOVE', 'ENTRYPOINT_FAILED',))]
+    fn test_self_remove_security_admin() {
+        let token_bridge_address = deploy_token_bridge();
+        let token_bridge_roles = get_roles(contract_address: token_bridge_address);
+        assert(token_bridge_roles.is_security_admin(account: caller()), 'NOT_SEC_ADMIN');
+        token_bridge_roles.remove_security_admin(account: caller());
+    }
+
     fn _test_register_and_remove_governance_admin(contract_address: ContractAddress) {
         let _roles = get_roles(contract_address: contract_address);
         let arbitrary_account = not_caller();
