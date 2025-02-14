@@ -23,10 +23,9 @@ mod TokenBridge {
     use serde::Serde;
     use starknet::contract_address::ContractAddressZeroable;
     use starknet::{
-        ContractAddress, get_caller_address, EthAddress, EthAddressIntoFelt252, EthAddressSerde,
-        EthAddressZeroable, syscalls::send_message_to_l1_syscall, syscalls::call_contract_syscall,
-        syscalls::library_call_syscall, get_block_timestamp, replace_class_syscall, deploy_syscall,
-        get_contract_address,
+        ContractAddress, get_caller_address, syscalls::send_message_to_l1_syscall,
+        syscalls::call_contract_syscall, syscalls::library_call_syscall, get_block_timestamp,
+        replace_class_syscall, deploy_syscall, get_contract_address,
     };
     use starknet::class_hash::{ClassHash, Felt252TryIntoClassHash};
     use super::super::token_bridge_interface::{
@@ -83,14 +82,14 @@ mod TokenBridge {
     struct Storage {
         // --- Token Bridge ---
         // The L1 bridge address. Zero when unset.
-        l1_bridge: EthAddress,
+        l1_bridge: ContractAddress,
         // The erc20 class hash.
         erc20_class_hash: ClassHash,
         // Governor of deployed L2 Tokens.
         l2_token_governance: ContractAddress,
         // Mapping from between l1<->l2 token addresses.
-        l1_l2_token_map: starknet::storage::Map<EthAddress, ContractAddress>,
-        l2_l1_token_map: starknet::storage::Map<ContractAddress, EthAddress>,
+        l1_l2_token_map: starknet::storage::Map<ContractAddress, ContractAddress>,
+        l2_l1_token_map: starknet::storage::Map<ContractAddress, ContractAddress>,
         // Mapping between l2_token => bool that defines if withdrawal limit is applied on
         // the l2_token. By default withdrawal limit is not applied.
         withdrawal_limit_applied: starknet::storage::Map<ContractAddress, bool>,
@@ -168,7 +167,7 @@ mod TokenBridge {
     // * l1_bridge_address is the new l1 bridge address.
     #[derive(Copy, Drop, PartialEq, starknet::Event)]
     struct L1BridgeSet {
-        l1_bridge_address: EthAddress,
+        l1_bridge_address: ContractAddress,
     }
 
 
@@ -191,7 +190,7 @@ mod TokenBridge {
     // `initiate_withdraw` is called.
     #[derive(Copy, Drop, PartialEq, starknet::Event)]
     struct withdraw_initiated {
-        l1_recipient: EthAddress,
+        l1_recipient: ContractAddress,
         amount: u256,
         caller_address: ContractAddress,
     }
@@ -200,9 +199,9 @@ mod TokenBridge {
     #[derive(Copy, Drop, PartialEq, starknet::Event)]
     struct WithdrawInitiated {
         #[key]
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         #[key]
-        l1_recipient: EthAddress,
+        l1_recipient: ContractAddress,
         amount: u256,
         #[key]
         caller_address: ContractAddress,
@@ -220,7 +219,7 @@ mod TokenBridge {
     #[derive(Copy, Drop, PartialEq, starknet::Event)]
     struct DepositHandled {
         #[key]
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         #[key]
         l2_recipient: ContractAddress,
         amount: u256,
@@ -230,9 +229,9 @@ mod TokenBridge {
     #[derive(Copy, Drop, PartialEq, starknet::Event)]
     struct DepositWithMessageHandled {
         #[key]
-        depositor: EthAddress,
+        depositor: ContractAddress,
         #[key]
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         #[key]
         l2_recipient: ContractAddress,
         amount: u256,
@@ -242,7 +241,7 @@ mod TokenBridge {
     // Emitted upon processing of the handle_token_deployment L1 handler.
     #[derive(Copy, Drop, PartialEq, starknet::Event)]
     struct DeployHandled {
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         name: felt252,
         symbol: felt252,
         decimals: u8,
@@ -254,7 +253,7 @@ mod TokenBridge {
         #[key]
         sender: ContractAddress,
         #[key]
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
     }
 
     // Emitted upon stopping of limiting withdrawals on a token.
@@ -263,7 +262,7 @@ mod TokenBridge {
         #[key]
         sender: ContractAddress,
         #[key]
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
     }
 
     #[constructor]
@@ -305,7 +304,7 @@ mod TokenBridge {
 
         // Try to withdraw an amount and if it succeeds, update the remaining withdrawal quota.
         fn consume_withdrawal_quota(
-            ref self: ContractState, l1_token: EthAddress, amount_to_withdraw: u256,
+            ref self: ContractState, l1_token: ContractAddress, amount_to_withdraw: u256,
         ) {
             let remaining_withdrawal_quota = self.get_remaining_withdrawal_quota(:l1_token);
             // This function should be called only after checking that `is_withdrawal_limit_applied`
@@ -348,7 +347,7 @@ mod TokenBridge {
     impl TokenBridgeInternal of _TokenBridgeInternal {
         // --- Token Bridge ---
         // Read l1_bridge and verify it's initialized.
-        fn get_l1_bridge_address(self: @ContractState) -> EthAddress {
+        fn get_l1_bridge_address(self: @ContractState) -> ContractAddress {
             let l1_bridge_address = self.l1_bridge.read();
             assert(l1_bridge_address.is_non_zero(), 'UNINITIALIZED_L1_BRIDGE_ADDRESS');
             l1_bridge_address
@@ -382,7 +381,7 @@ mod TokenBridge {
         fn get_l2_token_governance(self: @ContractState) -> ContractAddress {
             self.l2_token_governance.read()
         }
-        fn set_l1_bridge(ref self: ContractState, l1_bridge_address: EthAddress) {
+        fn set_l1_bridge(ref self: ContractState, l1_bridge_address: ContractAddress) {
             // The call is restricted to the app governor.
             self.only_app_governor();
             assert(self.l1_bridge.read().is_zero(), 'L1_BRIDGE_ALREADY_INITIALIZED');
@@ -418,7 +417,7 @@ mod TokenBridge {
         }
 
         // Enable withdrawal limit for a token.
-        fn enable_withdrawal_limit(ref self: ContractState, l1_token: EthAddress) {
+        fn enable_withdrawal_limit(ref self: ContractState, l1_token: ContractAddress) {
             self.only_security_agent();
             let l2_token = self.get_l2_token(:l1_token);
             assert(l2_token.is_non_zero(), 'TOKEN_NOT_IN_BRIDGE');
@@ -428,7 +427,7 @@ mod TokenBridge {
         }
 
         // Disable withdrawal limit for a token.
-        fn disable_withdrawal_limit(ref self: ContractState, l1_token: EthAddress) {
+        fn disable_withdrawal_limit(ref self: ContractState, l1_token: ContractAddress) {
             self.only_security_admin();
             let l2_token = self.get_l2_token(:l1_token);
             assert(l2_token.is_non_zero(), 'TOKEN_NOT_IN_BRIDGE');
@@ -449,10 +448,10 @@ mod TokenBridge {
         }
 
 
-        fn get_l1_token(self: @ContractState, l2_token: ContractAddress) -> EthAddress {
+        fn get_l1_token(self: @ContractState, l2_token: ContractAddress) -> ContractAddress {
             self.l2_l1_token_map.read(l2_token)
         }
-        fn get_l2_token(self: @ContractState, l1_token: EthAddress) -> ContractAddress {
+        fn get_l2_token(self: @ContractState, l1_token: ContractAddress) -> ContractAddress {
             self.l1_l2_token_map.read(l1_token)
         }
 
@@ -460,7 +459,7 @@ mod TokenBridge {
         // Returns the current remaining withdrawal quota for a given token. If there is no limit,
         // returns max uint256. If the limit was not set yet, we calculate it based on the total
         // supply. Otherwise, return the limit.
-        fn get_remaining_withdrawal_quota(self: @ContractState, l1_token: EthAddress) -> u256 {
+        fn get_remaining_withdrawal_quota(self: @ContractState, l1_token: ContractAddress) -> u256 {
             let l2_token = self.get_l2_token(:l1_token);
             // If there is no limit, return max uint256.
             if self.is_withdrawal_limit_applied(:l2_token) == false {
@@ -475,7 +474,7 @@ mod TokenBridge {
 
         // Legacy format of initite_withdraw. Applicable only for upgraded legacy bridges.
         // In such bridges, there is a single token that is stored in `l2_token()`.
-        fn initiate_withdraw(ref self: ContractState, l1_recipient: EthAddress, amount: u256) {
+        fn initiate_withdraw(ref self: ContractState, l1_recipient: ContractAddress, amount: u256) {
             let l2_token = self.l2_token.read();
             assert(l2_token.is_non_zero(), 'L2_TOKEN_NOT_SET');
             let l1_token = self.get_l1_token(:l2_token);
@@ -492,7 +491,10 @@ mod TokenBridge {
 
         // Initiates an l2-to-l1 token withdraw.
         fn initiate_token_withdraw(
-            ref self: ContractState, l1_token: EthAddress, l1_recipient: EthAddress, amount: u256,
+            ref self: ContractState,
+            l1_token: ContractAddress,
+            l1_recipient: ContractAddress,
+            amount: u256,
         ) {
             // Prevent burn to zero.
             assert(l1_recipient.is_non_zero(), 'INVALID_RECIPIENT');
@@ -1012,8 +1014,8 @@ mod TokenBridge {
     fn handle_token_deposit(
         ref self: ContractState,
         from_address: felt252,
-        l1_token: EthAddress,
-        depositor: EthAddress,
+        l1_token: ContractAddress,
+        depositor: ContractAddress,
         l2_recipient: ContractAddress,
         amount: u256,
     ) {
@@ -1029,8 +1031,8 @@ mod TokenBridge {
     fn handle_deposit_with_message(
         ref self: ContractState,
         from_address: felt252,
-        l1_token: EthAddress,
-        depositor: EthAddress,
+        l1_token: ContractAddress,
+        depositor: ContractAddress,
         l2_recipient: ContractAddress,
         amount: u256,
         message: Span<felt252>,
@@ -1068,7 +1070,7 @@ mod TokenBridge {
     fn handle_token_deployment(
         ref self: ContractState,
         from_address: felt252,
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         name: felt252,
         symbol: felt252,
         decimals: u8,
