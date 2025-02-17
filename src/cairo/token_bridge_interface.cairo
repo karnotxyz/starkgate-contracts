@@ -10,6 +10,9 @@ trait ITokenBridge<TContractState> {
     fn get_remaining_withdrawal_quota(self: @TContractState, l1_token: ContractAddress) -> u256;
     fn initiate_withdraw(ref self: TContractState, l1_recipient: ContractAddress, amount: u256);
     fn initiate_token_withdraw(
-        ref self: TContractState, l1_token: ContractAddress, l1_recipient: ContractAddress, amount: u256,
+        ref self: TContractState,
+        l1_token: ContractAddress,
+        l1_recipient: ContractAddress,
+        amount: u256,
     );
 }

@@ -23,9 +23,9 @@ mod TokenBridge {
     use serde::Serde;
     use starknet::contract_address::ContractAddressZeroable;
     use starknet::{
-        ContractAddress, get_caller_address, syscalls::send_message_to_l1_syscall, 
-        syscalls::call_contract_syscall, syscalls::library_call_syscall, get_block_timestamp, replace_class_syscall, deploy_syscall,
-        get_contract_address,
+        ContractAddress, get_caller_address, syscalls::send_message_to_l1_syscall,
+        syscalls::call_contract_syscall, syscalls::library_call_syscall, get_block_timestamp,
+        replace_class_syscall, deploy_syscall, get_contract_address,
     };
     use starknet::class_hash::{ClassHash, Felt252TryIntoClassHash};
     use super::super::token_bridge_interface::{
@@ -491,7 +491,10 @@ mod TokenBridge {
 
         // Initiates an l2-to-l1 token withdraw.
         fn initiate_token_withdraw(
-            ref self: ContractState, l1_token: ContractAddress, l1_recipient: ContractAddress, amount: u256,
+            ref self: ContractState,
+            l1_token: ContractAddress,
+            l1_recipient: ContractAddress,
+            amount: u256,
         ) {
             // Prevent burn to zero.
             assert(l1_recipient.is_non_zero(), 'INVALID_RECIPIENT');
