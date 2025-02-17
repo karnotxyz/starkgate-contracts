@@ -36,8 +36,8 @@ mod legacy_eic_test {
         Update712EICTester, ITester, ITesterDispatcher, ITesterDispatcherTrait,
     };
 
-    fn L1_TOKEN_ADDRESS() -> EthAddress {
-        EthAddress { address: 2023 }
+    fn L1_TOKEN_ADDRESS() -> ContractAddress {
+        starknet::contract_address_const::<2023>()
     }
 
     fn L2_TOKEN_ADDRESS() -> ContractAddress {
@@ -120,7 +120,7 @@ mod legacy_eic_test {
     }
 
     fn token_bridge_w_eic_implementation_data(
-        l1_token: EthAddress, l2_token: ContractAddress,
+        l1_token: ContractAddress, l2_token: ContractAddress,
     ) -> ImplementationData {
         let mut calldata = ArrayTrait::new();
         l1_token.serialize(ref calldata);
@@ -137,7 +137,7 @@ mod legacy_eic_test {
     }
 
     fn token_long_eic_data_implementation_data(
-        l1_token: EthAddress, l2_token: ContractAddress,
+        l1_token: ContractAddress, l2_token: ContractAddress,
     ) -> ImplementationData {
         let mut calldata = ArrayTrait::new();
         l1_token.serialize(ref calldata);
@@ -310,7 +310,7 @@ mod legacy_eic_test {
         // Test failing to upgrade with  a zero l1 token address sent to the upgrade.
         let tester_address = deploy_legacy_tester(L2_TOKEN_ADDRESS());
         let impl_data = token_bridge_w_eic_implementation_data(
-            l1_token: EthAddressZeroable::zero(), l2_token: L2_TOKEN_ADDRESS(),
+            l1_token: ContractAddressZeroable::zero(), l2_token: L2_TOKEN_ADDRESS(),
         );
         add_impl_and_replace_to(
             replaceable_address: tester_address, implementation_data: impl_data,
