@@ -121,7 +121,7 @@ mod TokenBridge {
     }
 
     #[event]
-    #[derive(Copy, Drop, PartialEq, starknet::Event)]
+    #[derive(Drop, PartialEq, starknet::Event)]
     enum Event {
         // --- Token Bridge ---
         L1BridgeSet: L1BridgeSet,
@@ -239,11 +239,11 @@ mod TokenBridge {
     }
 
     // Emitted upon processing of the handle_token_deployment L1 handler.
-    #[derive(Copy, Drop, PartialEq, starknet::Event)]
+    #[derive(Drop, PartialEq, starknet::Event)]
     struct DeployHandled {
         l1_token: ContractAddress,
-        name: felt252,
-        symbol: felt252,
+        name: ByteArray,
+        symbol: ByteArray,
         decimals: u8,
     }
 
@@ -1071,8 +1071,8 @@ mod TokenBridge {
         ref self: ContractState,
         from_address: felt252,
         l1_token: ContractAddress,
-        name: felt252,
-        symbol: felt252,
+        name: ByteArray,
+        symbol: ByteArray,
         decimals: u8,
     ) {
         // Upgraded legacy bridge is not allowed to deploy tokens.
