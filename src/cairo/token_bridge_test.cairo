@@ -58,7 +58,7 @@ mod token_bridge_test {
     };
 
     const EXPECTED_CONTRACT_IDENTITY: felt252 = 'STARKGATE';
-    const EXPECTED_CONTRACT_VERSION: felt252 = 2;
+    const EXPECTED_CONTRACT_VERSION: felt252 = '2.0.1';
 
     const DEFAULT_DEPOSITOR_ETH_ADDRESS: felt252 = 7;
 

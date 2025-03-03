@@ -67,7 +67,7 @@ def event_loop():
 
 
 TestERC20 = load_contract("TestERC20")
-Proxy = load_contract("Proxy")
+Proxy = load_contract("ProxyV5")
 LegacyProxy = load_legacy_contract("Proxy")
 LegacyEthBridge = load_legacy_contract("StarknetEthBridge")
 LegacyERC20Bridge = load_legacy_contract("StarknetERC20Bridge")
