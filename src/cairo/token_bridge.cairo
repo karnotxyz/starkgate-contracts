@@ -9,7 +9,7 @@ mod TokenBridge {
     use super::super::err_msg::AccessErrors::{
         CALLER_MISSING_ROLE, ZERO_ADDRESS, ALREADY_INITIALIZED, ONLY_APP_GOVERNOR, ONLY_OPERATOR,
         ONLY_TOKEN_ADMIN, ONLY_UPGRADE_GOVERNOR, ONLY_SECURITY_ADMIN, ONLY_SECURITY_AGENT,
-        GOV_ADMIN_CANNOT_RENOUNCE,
+        GOV_ADMIN_CANNOT_RENOUNCE, SEC_ADMIN_CANNOT_RENOUNCE,
     };
     use super::super::err_msg::ERC20Errors as ERC20Errors;
     use super::super::err_msg::ReplaceErrors as ReplaceErrors;
@@ -45,10 +45,8 @@ mod TokenBridge {
         OperatorAdded, OperatorRemoved, TokenAdminAdded, TokenAdminRemoved, UpgradeGovernorAdded,
         UpgradeGovernorRemoved,
     };
-    use super::super::erc20_interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-    use super::super::mintable_token_interface::{
-        IMintableTokenDispatcher, IMintableTokenDispatcherTrait,
-    };
+    use src::erc20_interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use src::mintable_token_interface::{IMintableTokenDispatcher, IMintableTokenDispatcherTrait};
 
     use super::super::replaceability_interface::{
         ImplementationData, IReplaceable, IReplaceableDispatcher, IReplaceableDispatcherTrait,
@@ -61,7 +59,7 @@ mod TokenBridge {
 
     const WITHDRAW_MESSAGE: felt252 = 0;
     const CONTRACT_IDENTITY: felt252 = 'STARKGATE';
-    const CONTRACT_VERSION: felt252 = 2;
+    const CONTRACT_VERSION: felt252 = '2.0.1';
 
     const DEFAULT_DAILY_WITHDRAW_LIMIT_PCT: u8 = 5;
 
@@ -451,6 +449,11 @@ mod TokenBridge {
         fn get_l1_token(self: @ContractState, l2_token: ContractAddress) -> ContractAddress {
             self.l2_l1_token_map.read(l2_token)
         }
+
+        fn get_l1_bridge(self: @ContractState) -> EthAddress {
+            self.l1_bridge.read()
+        }
+
         fn get_l2_token(self: @ContractState, l1_token: ContractAddress) -> ContractAddress {
             self.l1_l2_token_map.read(l1_token)
         }
@@ -829,6 +832,7 @@ mod TokenBridge {
             let event = Event::SecurityAdminRemoved(
                 SecurityAdminRemoved { removed_account: account, removed_by: get_caller_address() },
             );
+            self.prevent_self_removal(:account, error: SEC_ADMIN_CANNOT_RENOUNCE);
             self._revoke_role_and_emit(role: SECURITY_ADMIN, :account, :event);
         }
 
@@ -860,6 +864,7 @@ mod TokenBridge {
                     removed_account: account, removed_by: get_caller_address(),
                 },
             );
+            self.prevent_self_removal(:account, error: GOV_ADMIN_CANNOT_RENOUNCE);
             self._revoke_role_and_emit(role: GOVERNANCE_ADMIN, :account, :event);
         }
 
@@ -907,21 +912,20 @@ mod TokenBridge {
             self._revoke_role_and_emit(role: UPGRADE_GOVERNOR, :account, :event);
         }
 
-        // TODO -  change the fn name to renounce_role when we can have modularity.
-        // TODO -  change to GOVERNANCE_ADMIN_CANNOT_SELF_REMOVE when the 32 characters limitations
-        // is off.
         fn renounce(ref self: ContractState, role: RoleId) {
             assert(role != GOVERNANCE_ADMIN, GOV_ADMIN_CANNOT_RENOUNCE);
+            assert(role != SECURITY_ADMIN, SEC_ADMIN_CANNOT_RENOUNCE);
             self.renounce_role(:role, account: get_caller_address())
-            // TODO add another event? Currently there are two events when a role is removed but
-        // only one if it was renounced.
         }
     }
 
 
     #[generate_trait]
     impl RolesInternal of _RolesInternal {
-        // TODO -  change the fn name to _grant_role when we can have modularity.
+        fn prevent_self_removal(self: @ContractState, account: ContractAddress, error: felt252) {
+            assert(account != get_caller_address(), error);
+        }
+
         fn _grant_role_and_emit(
             ref self: ContractState, role: RoleId, account: ContractAddress, event: Event,
         ) {
@@ -932,7 +936,6 @@ mod TokenBridge {
             }
         }
 
-        // TODO -  change the fn name to _revoke_role when we can have modularity.
         fn _revoke_role_and_emit(
             ref self: ContractState, role: RoleId, account: ContractAddress, event: Event,
         ) {
