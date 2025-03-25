@@ -450,7 +450,7 @@ mod TokenBridge {
             self.l2_l1_token_map.read(l2_token)
         }
 
-        fn get_l1_bridge(self: @ContractState) -> EthAddress {
+        fn get_l1_bridge(self: @ContractState) -> ContractAddress {
             self.l1_bridge.read()
         }
 
