@@ -15,14 +15,14 @@ mod TokenTestSetup {
     #[storage]
     struct Storage {
         l2_token: ContractAddress,
-        l1_l2_token_map: starknet::storage::Map<EthAddress, ContractAddress>,
-        l2_l1_token_map: starknet::storage::Map<ContractAddress, EthAddress>,
+        l1_l2_token_map: starknet::storage::Map<ContractAddress, ContractAddress>,
+        l2_l1_token_map: starknet::storage::Map<ContractAddress, ContractAddress>,
     }
 
     #[external(v0)]
     fn set_l2_token_and_replace(
         ref self: ContractState,
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         l2_token: ContractAddress,
         l2_token_for_mapping: ContractAddress,
     ) {

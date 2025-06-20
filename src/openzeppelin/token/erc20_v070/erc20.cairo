@@ -13,8 +13,8 @@ mod ERC20 {
     use src::err_msg::ERC20Errors as ERC20Errors;
     use src::err_msg::ReplaceErrors as ReplaceErrors;
 
-    use openzeppelin::token::erc20::interface::IERC20;
-    use openzeppelin::token::erc20::interface::IERC20CamelOnly;
+    use openzeppelin::token::erc20_v070::interface::IERC20;
+    use openzeppelin::token::erc20_v070::interface::IERC20CamelOnly;
     use src::mintable_token_interface::{IMintableToken, IMintableTokenCamel};
     use src::access_control_interface::{
         IAccessControl, RoleId, RoleAdminChanged, RoleGranted, RoleRevoked,
@@ -37,8 +37,8 @@ mod ERC20 {
 
     #[storage]
     struct Storage {
-        ERC20_name: felt252,
-        ERC20_symbol: felt252,
+        ERC20_name: ByteArray,
+        ERC20_symbol: ByteArray,
         ERC20_decimals: u8,
         ERC20_total_supply: u256,
         ERC20_balances: starknet::storage::Map<ContractAddress, u256>,
@@ -108,8 +108,8 @@ mod ERC20 {
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        name: felt252,
-        symbol: felt252,
+        name: ByteArray,
+        symbol: ByteArray,
         decimals: u8,
         initial_supply: u256,
         recipient: ContractAddress,
@@ -469,12 +469,12 @@ mod ERC20 {
     #[abi(embed_v0)]
     impl ERC20Impl of IERC20<ContractState> {
         /// Returns the name of the token.
-        fn name(self: @ContractState) -> felt252 {
+        fn name(self: @ContractState) -> ByteArray {
             self.ERC20_name.read()
         }
 
         /// Returns the ticker symbol of the token, usually a shorter version of the name.
-        fn symbol(self: @ContractState) -> felt252 {
+        fn symbol(self: @ContractState) -> ByteArray {
             self.ERC20_symbol.read()
         }
 
@@ -605,7 +605,7 @@ mod ERC20 {
     impl InternalImpl of InternalTrait {
         /// Initializes the contract by setting the token name and symbol.
         /// To prevent reinitialization, this should only be used inside of a contract constructor.
-        fn initializer(ref self: ContractState, name: felt252, symbol: felt252, decimals: u8) {
+        fn initializer(ref self: ContractState, name: ByteArray, symbol: ByteArray, decimals: u8) {
             self.ERC20_name.write(name);
             self.ERC20_symbol.write(symbol);
             self.ERC20_decimals.write(decimals);

@@ -2,7 +2,7 @@
 mod token_bridge_admin_test {
     use starknet::class_hash::ClassHashZeroable;
     use starknet::contract_address::ContractAddressZeroable;
-    use starknet::{EthAddress, get_block_timestamp};
+    use starknet::{ContractAddress, EthAddress, get_block_timestamp};
 
     use super::super::token_bridge::TokenBridge::{
         Event, L1BridgeSet, Erc20ClassHashStored, SECONDS_IN_DAY, L2TokenGovernanceChanged,
@@ -87,7 +87,8 @@ mod token_bridge_admin_test {
         let token_bridge_admin = deploy_and_prepare();
 
         // Set the l1 bridge with a 0 address.
-        token_bridge_admin.set_l1_bridge(l1_bridge_address: EthAddress { address: 0 });
+        // token_bridge_admin.set_l1_bridge(l1_bridge_address: EthAddress { address: 0 });
+        token_bridge_admin.set_l1_bridge(l1_bridge_address: 0.try_into().unwrap());
     }
 
     #[test]
@@ -189,7 +190,8 @@ mod token_bridge_admin_test {
     #[available_gas(30000000)]
     fn test_successful_initiate_token_withdraw_with_limits_one_withdrawal() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -223,7 +225,8 @@ mod token_bridge_admin_test {
     #[available_gas(30000000)]
     fn test_successful_initiate_token_withdraw_with_limits_two_withdrawals() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -268,7 +271,8 @@ mod token_bridge_admin_test {
     #[available_gas(30000000)]
     fn test_successful_initiate_token_withdraw_with_and_without_limits() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -327,7 +331,8 @@ mod token_bridge_admin_test {
     #[should_panic(expected: ('LIMIT_EXCEEDED', 'ENTRYPOINT_FAILED'))]
     fn test_failed_initiate_token_withdraw_with_and_without_limits() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -377,7 +382,8 @@ mod token_bridge_admin_test {
     #[available_gas(30000000)]
     fn test_successful_initiate_token_withdraw_with_limits_different_days() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
         set_caller_as_app_role_admin_app_governor(:token_bridge_address);
         let token_bridge_admin = get_token_bridge_admin(:token_bridge_address);
@@ -431,7 +437,8 @@ mod token_bridge_admin_test {
     #[available_gas(30000000)]
     fn test_successful_initiate_token_withdraw_with_limits_same_day_differnet_time() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -483,7 +490,8 @@ mod token_bridge_admin_test {
     #[should_panic(expected: ('LIMIT_EXCEEDED', 'ENTRYPOINT_FAILED'))]
     fn test_failed_initiate_token_withdraw_limit_exceeded_one_withdrawal() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -516,7 +524,8 @@ mod token_bridge_admin_test {
     #[should_panic(expected: ('LIMIT_EXCEEDED', 'ENTRYPOINT_FAILED'))]
     fn test_failed_initiate_token_withdraw_limit_exceeded_two_withdrawals() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -557,7 +566,8 @@ mod token_bridge_admin_test {
     #[should_panic(expected: ('LIMIT_EXCEEDED', 'ENTRYPOINT_FAILED'))]
     fn test_failed_initiate_token_withdraw_limit_exceeded_same_day_different_time() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.

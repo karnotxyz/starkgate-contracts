@@ -115,6 +115,8 @@ mod test_utils {
 
     use super::TestAccount;
 
+    use core::to_byte_array::FormatAsByteArray;
+
     const DEFAULT_UPGRADE_DELAY: u64 = 12345;
 
     const DEFAULT_L1_BRIDGE_ETH_ADDRESS: felt252 = 5;
@@ -237,11 +239,14 @@ mod test_utils {
         ERC20VotesLock::TEST_CLASS_HASH.try_into().unwrap()
     }
 
-    fn get_default_l1_addresses() -> (EthAddress, EthAddress, EthAddress) {
+    fn get_default_l1_addresses() -> (ContractAddress, ContractAddress, ContractAddress) {
         (
-            EthAddress { address: DEFAULT_L1_BRIDGE_ETH_ADDRESS },
-            EthAddress { address: DEFAULT_L1_TOKEN_ETH_ADDRESS },
-            EthAddress { address: DEFAULT_L1_RECIPIENT },
+            // EthAddress { address: DEFAULT_L1_BRIDGE_ETH_ADDRESS },
+            // EthAddress { address: DEFAULT_L1_TOKEN_ETH_ADDRESS },
+            // EthAddress { address: DEFAULT_L1_RECIPIENT },
+            DEFAULT_L1_BRIDGE_ETH_ADDRESS.try_into().unwrap(),
+            DEFAULT_L1_TOKEN_ETH_ADDRESS.try_into().unwrap(),
+            DEFAULT_L1_RECIPIENT.try_into().unwrap(),
         )
     }
 
@@ -253,8 +258,31 @@ mod test_utils {
     ) -> Span<felt252> {
         // Set the constructor calldata.
         let mut calldata = ArrayTrait::new();
+        // 'NAME'.serialize(ref calldata);
+        // 'SYMBOL'.serialize(ref calldata);
+        'NAME'.format_as_byte_array(10.try_into().unwrap()).serialize(ref calldata);
+        'SYMBOL'.format_as_byte_array(10.try_into().unwrap()).serialize(ref calldata);
+        18_u8.serialize(ref calldata);
+        initial_supply.serialize(ref calldata);
+        initial_owner.serialize(ref calldata);
+        permitted_minter.serialize(ref calldata);
+        token_gov.serialize(ref calldata);
+        DEFAULT_UPGRADE_DELAY.serialize(ref calldata);
+        calldata.span()
+    }
+
+    fn get_l2_token_deployment_calldata_old(
+        initial_owner: ContractAddress,
+        permitted_minter: ContractAddress,
+        token_gov: ContractAddress,
+        initial_supply: u256,
+    ) -> Span<felt252> {
+        // Set the constructor calldata.
+        let mut calldata = ArrayTrait::new();
         'NAME'.serialize(ref calldata);
         'SYMBOL'.serialize(ref calldata);
+        // 'NAME'.format_as_byte_array(10.try_into().unwrap()).serialize(ref calldata);
+        // 'SYMBOL'.format_as_byte_array(10.try_into().unwrap()).serialize(ref calldata);
         18_u8.serialize(ref calldata);
         initial_supply.serialize(ref calldata);
         initial_owner.serialize(ref calldata);
@@ -272,6 +300,8 @@ mod test_utils {
         'NAME'.serialize(ref calldata);
         'SYMBOL'.serialize(ref calldata);
         18_u8.serialize(ref calldata);
+        // 'NAME'.format_as_byte_array(10.try_into().unwrap()).serialize(ref calldata);
+        // 'SYMBOL'.format_as_byte_array(10.try_into().unwrap()).serialize(ref calldata);
         locked_token.serialize(ref calldata);
         token_gov.serialize(ref calldata);
         DEFAULT_UPGRADE_DELAY.serialize(ref calldata);
@@ -310,7 +340,7 @@ mod test_utils {
     fn deploy_lockable_token(
         initial_owner: ContractAddress, initial_supply: u256,
     ) -> ContractAddress {
-        let calldata = get_l2_token_deployment_calldata(
+        let calldata = get_l2_token_deployment_calldata_old(
             :initial_owner,
             permitted_minter: permitted_minter(),
             token_gov: caller(),
@@ -356,7 +386,7 @@ mod test_utils {
 
 
     fn deploy_upgraded_legacy_bridge(
-        l1_token: EthAddress, l2_recipient: ContractAddress, token_mismatch: bool,
+        l1_token: ContractAddress, l2_recipient: ContractAddress, token_mismatch: bool,
     ) -> ContractAddress {
         // Deploy the contract.
         let mut calldata = array![];
@@ -546,8 +576,8 @@ mod test_utils {
     fn withdraw_and_validate(
         token_bridge_address: ContractAddress,
         withdraw_from: ContractAddress,
-        l1_recipient: EthAddress,
-        l1_token: EthAddress,
+        l1_recipient: ContractAddress,
+        l1_token: ContractAddress,
         amount_to_withdraw: u256,
     ) {
         let token_bridge = get_token_bridge(:token_bridge_address);
@@ -582,7 +612,7 @@ mod test_utils {
         );
     }
 
-    fn enable_withdrawal_limit(token_bridge_address: ContractAddress, l1_token: EthAddress) {
+    fn enable_withdrawal_limit(token_bridge_address: ContractAddress, l1_token: ContractAddress) {
         let token_bridge = get_token_bridge(:token_bridge_address);
         let _l2_token = token_bridge.get_l2_token(:l1_token);
         set_contract_address_as_caller();
@@ -599,7 +629,7 @@ mod test_utils {
         );
     }
 
-    fn disable_withdrawal_limit(token_bridge_address: ContractAddress, l1_token: EthAddress) {
+    fn disable_withdrawal_limit(token_bridge_address: ContractAddress, l1_token: ContractAddress) {
         let token_bridge = get_token_bridge(:token_bridge_address);
         let _l2_token = token_bridge.get_l2_token(:l1_token);
         set_contract_address_as_caller();
@@ -618,7 +648,7 @@ mod test_utils {
     }
 
     fn _get_daily_withdrawal_limit(
-        token_bridge_address: ContractAddress, l1_token: EthAddress,
+        token_bridge_address: ContractAddress, l1_token: ContractAddress,
     ) -> u256 {
         let orig = get_contract_address();
         let token_bridge = get_token_bridge(:token_bridge_address);
@@ -634,7 +664,7 @@ mod test_utils {
     }
 
     fn prepare_bridge_for_deploy_token(
-        token_bridge_address: ContractAddress, l1_bridge_address: EthAddress,
+        token_bridge_address: ContractAddress, l1_bridge_address: ContractAddress,
     ) {
         let orig = get_contract_address();
         let _token_bridge = get_token_bridge(:token_bridge_address);
@@ -658,7 +688,9 @@ mod test_utils {
 
     // Prepares the bridge for deploying a new token and then deploys it.
     fn deploy_new_token(
-        token_bridge_address: ContractAddress, l1_bridge_address: EthAddress, l1_token: EthAddress,
+        token_bridge_address: ContractAddress,
+        l1_bridge_address: ContractAddress,
+        l1_token: ContractAddress,
     ) {
         prepare_bridge_for_deploy_token(:token_bridge_address, :l1_bridge_address);
         // Set the contract address to be of the token bridge, so we can simulate l1 message handler
@@ -671,8 +703,8 @@ mod test_utils {
             ref token_bridge_state,
             from_address: l1_bridge_address.into(),
             :l1_token,
-            name: NAME,
-            symbol: SYMBOL,
+            name: NAME.format_as_byte_array(10.try_into().unwrap()),
+            symbol: SYMBOL.format_as_byte_array(10.try_into().unwrap()),
             decimals: DECIMALS,
         );
     }
@@ -681,9 +713,9 @@ mod test_utils {
     // it.
     fn deploy_new_token_and_deposit(
         token_bridge_address: ContractAddress,
-        l1_bridge_address: EthAddress,
-        l1_token: EthAddress,
-        depositor: EthAddress,
+        l1_bridge_address: ContractAddress,
+        l1_token: ContractAddress,
+        depositor: ContractAddress,
         l2_recipient: ContractAddress,
         amount_to_deposit: u256,
     ) {
