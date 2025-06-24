@@ -5,8 +5,8 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IERC20<TState> {
-    fn name(self: @TState) -> felt252;
-    fn symbol(self: @TState) -> felt252;
+    fn name(self: @TState) -> ByteArray;
+    fn symbol(self: @TState) -> ByteArray;
     fn decimals(self: @TState) -> u8;
     fn total_supply(self: @TState) -> u256;
     fn balance_of(self: @TState, account: ContractAddress) -> u256;
@@ -20,8 +20,8 @@ trait IERC20<TState> {
 
 #[starknet::interface]
 trait IERC20Camel<TState> {
-    fn name(self: @TState) -> felt252;
-    fn symbol(self: @TState) -> felt252;
+    fn name(self: @TState) -> ByteArray;
+    fn symbol(self: @TState) -> ByteArray;
     fn decimals(self: @TState) -> u8;
     fn totalSupply(self: @TState) -> u256;
     fn balanceOf(self: @TState, account: ContractAddress) -> u256;
@@ -44,8 +44,8 @@ trait IERC20CamelOnly<TState> {
 
 #[starknet::interface]
 trait ERC20ABI<TState> {
-    fn name(self: @TState) -> felt252;
-    fn symbol(self: @TState) -> felt252;
+    fn name(self: @TState) -> ByteArray;
+    fn symbol(self: @TState) -> ByteArray;
     fn decimals(self: @TState) -> u8;
     fn total_supply(self: @TState) -> u256;
     fn balance_of(self: @TState, account: ContractAddress) -> u256;
@@ -63,8 +63,8 @@ trait ERC20ABI<TState> {
 
 #[starknet::interface]
 trait ERC20CamelABI<TState> {
-    fn name(self: @TState) -> felt252;
-    fn symbol(self: @TState) -> felt252;
+    fn name(self: @TState) -> ByteArray;
+    fn symbol(self: @TState) -> ByteArray;
     fn decimals(self: @TState) -> u8;
     fn totalSupply(self: @TState) -> u256;
     fn balanceOf(self: @TState, account: ContractAddress) -> u256;

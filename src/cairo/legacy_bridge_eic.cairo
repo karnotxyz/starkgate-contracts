@@ -19,8 +19,8 @@ mod LegacyBridgeUpgradeEIC {
     struct Storage {
         // --- Token Bridge ---
         // Mapping from between l1<->l2 token addresses.
-        l1_l2_token_map: starknet::storage::Map<EthAddress, ContractAddress>,
-        l2_l1_token_map: starknet::storage::Map<ContractAddress, EthAddress>,
+        l1_l2_token_map: starknet::storage::Map<ContractAddress, ContractAddress>,
+        l2_l1_token_map: starknet::storage::Map<ContractAddress, ContractAddress>,
         daily_withdrawal_limit_pct: u8,
         // `l2_token` is a legacy storage variable from older versions.
         // It's expected to be non-empty only in a case of an upgrade from such a version.
@@ -50,7 +50,7 @@ mod LegacyBridgeUpgradeEIC {
         fn eic_initialize(ref self: ContractState, eic_init_data: Span<felt252>) {
             assert(eic_init_data.len() == 2, 'EIC_INIT_DATA_LEN_MISMATCH_2');
             self.daily_withdrawal_limit_pct.write(WITHDRAWAL_LIMIT_PCT);
-            let l1_token: EthAddress = (*eic_init_data[0]).try_into().unwrap();
+            let l1_token: ContractAddress = (*eic_init_data[0]).try_into().unwrap();
             let l2_token: ContractAddress = (*eic_init_data[1]).try_into().unwrap();
             self.setup_l1_l2_mappings(:l1_token, :l2_token);
             self._initialize_roles();
@@ -99,7 +99,7 @@ mod LegacyBridgeUpgradeEIC {
         }
 
         fn setup_l1_l2_mappings(
-            ref self: ContractState, l1_token: EthAddress, l2_token: ContractAddress,
+            ref self: ContractState, l1_token: ContractAddress, l2_token: ContractAddress,
         ) {
             // Check that running on legacy bridge context.
             let legacy_l2_token = self.l2_token.read();

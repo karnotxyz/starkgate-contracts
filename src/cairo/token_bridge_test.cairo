@@ -57,6 +57,8 @@ mod token_bridge_test {
         IReplaceableDispatcherTrait,
     };
 
+    use core::to_byte_array::FormatAsByteArray;
+
     const EXPECTED_CONTRACT_IDENTITY: felt252 = 'STARKGATE';
     const EXPECTED_CONTRACT_VERSION: felt252 = '2.0.1';
 
@@ -69,11 +71,11 @@ mod token_bridge_test {
     // message into it.
     fn deploy_new_token_and_deposit_with_message(
         token_bridge_address: ContractAddress,
-        l1_bridge_address: EthAddress,
-        l1_token: EthAddress,
+        l1_bridge_address: ContractAddress,
+        l1_token: ContractAddress,
         l2_recipient: ContractAddress,
         amount_to_deposit: u256,
-        depositor: EthAddress,
+        depositor: ContractAddress,
         message: Span<felt252>,
     ) {
         deploy_new_token(:token_bridge_address, :l1_bridge_address, :l1_token);
@@ -92,7 +94,7 @@ mod token_bridge_test {
 
     fn assert_l2_account_balance(
         token_bridge_address: ContractAddress,
-        l1_token: EthAddress,
+        l1_token: ContractAddress,
         owner: ContractAddress,
         amount: u256,
     ) {
@@ -271,7 +273,8 @@ mod token_bridge_test {
     #[available_gas(30000000)]
     fn test_successful_initiate_token_withdraw() {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
         let token_bridge_address = deploy_token_bridge();
 
         // Deploy a new token and deposit funds to this token.
@@ -305,10 +308,12 @@ mod token_bridge_test {
         let (l1_bridge_address, l1_token, _) = get_default_l1_addresses();
 
         // Invalid recipient.
-        let l1_recipient = EthAddress { address: 0 };
+        // let l1_recipient = EthAddress { address: 0 };
+        let l1_recipient: ContractAddress = 0.try_into().unwrap();
 
         let token_bridge_address = deploy_token_bridge();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Deploy a new token and deposit funds to this token.
         let l2_recipient = initial_owner();
@@ -339,7 +344,8 @@ mod token_bridge_test {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
         let token_bridge_address = deploy_token_bridge();
         let token_bridge = get_token_bridge(:token_bridge_address);
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // The token does not exist; hence, there is no withdrawal limit applied. Therefore, the
         // quota is max.
@@ -408,7 +414,8 @@ mod token_bridge_test {
 
         let token_bridge_address = deploy_token_bridge();
         let token_bridge = get_token_bridge(:token_bridge_address);
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Deploy a new token and deposit funds to this token.
         let l2_recipient = initial_owner();
@@ -481,8 +488,8 @@ mod token_bridge_test {
             ref token_bridge_state,
             from_address: l1_bridge_address.into(),
             :l1_token,
-            name: NAME,
-            symbol: SYMBOL,
+            name: NAME.format_as_byte_array(10.try_into().unwrap()),
+            symbol: SYMBOL.format_as_byte_array(10.try_into().unwrap()),
             decimals: DECIMALS,
         );
 
@@ -491,7 +498,10 @@ mod token_bridge_test {
         assert(
             emitted_event == Event::DeployHandled(
                 DeployHandled {
-                    l1_token: l1_token, name: NAME, symbol: SYMBOL, decimals: DECIMALS,
+                    l1_token: l1_token,
+                    name: NAME.format_as_byte_array(10.try_into().unwrap()),
+                    symbol: SYMBOL.format_as_byte_array(10.try_into().unwrap()),
+                    decimals: DECIMALS,
                 },
             ),
             'DeployHandled Error',
@@ -502,7 +512,7 @@ mod token_bridge_test {
 
     fn internal_handle_depoist(
         token_bridge_address: ContractAddress,
-        l1_bridge_address: EthAddress,
+        l1_bridge_address: ContractAddress,
         l2_recipient: ContractAddress,
         amount: u256,
     ) {
@@ -518,7 +528,9 @@ mod token_bridge_test {
 
 
     fn internal_deploy_token(
-        token_bridge_address: ContractAddress, l1_bridge_address: EthAddress, l1_token: EthAddress,
+        token_bridge_address: ContractAddress,
+        l1_bridge_address: ContractAddress,
+        l1_token: ContractAddress,
     ) -> ContractAddress {
         let token_bridge = get_token_bridge(:token_bridge_address);
         let orig = get_contract_address();
@@ -528,8 +540,8 @@ mod token_bridge_test {
             ref token_bridge_state,
             from_address: l1_bridge_address.into(),
             l1_token: l1_token,
-            name: NAME,
-            symbol: SYMBOL,
+            name: NAME.format_as_byte_array(10.try_into().unwrap()),
+            symbol: SYMBOL.format_as_byte_array(10.try_into().unwrap()),
             decimals: DECIMALS,
         );
         starknet::testing::set_contract_address(address: orig);
@@ -542,8 +554,10 @@ mod token_bridge_test {
     fn test_deployed_token_governance() {
         // Deploy l2 tokens and check it's governance.
         // Alternate the governance set on the bridge mid way.
-        let l1_token1 = EthAddress { address: 1973 };
-        let l1_token2 = EthAddress { address: 2023 };
+        // let l1_token1 = EthAddress { address: 1973 };
+        let l1_token1: ContractAddress = 1973.try_into().unwrap();
+        // let l1_token2 = EthAddress { address: 2023 };
+        let l1_token2: ContractAddress = 2023.try_into().unwrap();
 
         let erc20_class_hash = stock_erc20_class_hash();
         let (l1_bridge_address, _, _) = get_default_l1_addresses();
@@ -615,15 +629,15 @@ mod token_bridge_test {
         let mut token_bridge_state = TokenBridge::contract_state_for_testing();
 
         // Deploy the token twice.
-        let name = 'TOKEN_NAME';
-        let symbol = 'TOKEN_SYMBOL';
+        let name = 'TOKEN_NAME'.format_as_byte_array(10.try_into().unwrap());
+        let symbol = 'TOKEN_SYMBOL'.format_as_byte_array(10.try_into().unwrap());
         let decimals = 6_u8;
         TokenBridge::handle_token_deployment(
             ref token_bridge_state,
             from_address: l1_bridge_address.into(),
             l1_token: l1_token,
-            name: name,
-            symbol: symbol,
+            name: name.clone(),
+            symbol: symbol.clone(),
             decimals: decimals,
         );
         TokenBridge::handle_token_deployment(
@@ -648,13 +662,16 @@ mod token_bridge_test {
         starknet::testing::set_contract_address(token_bridge_address);
         let mut token_bridge_state = TokenBridge::contract_state_for_testing();
 
-        let l1_not_bridge_address = EthAddress { address: NON_DEFAULT_L1_BRIDGE_ETH_ADDRESS };
+        // let l1_not_bridge_address = EthAddress { address: NON_DEFAULT_L1_BRIDGE_ETH_ADDRESS };
+        let l1_not_bridge_address: ContractAddress = NON_DEFAULT_L1_BRIDGE_ETH_ADDRESS
+            .try_into()
+            .unwrap();
         TokenBridge::handle_token_deployment(
             ref token_bridge_state,
             from_address: l1_not_bridge_address.into(),
             l1_token: l1_token,
-            name: NAME,
-            symbol: SYMBOL,
+            name: NAME.format_as_byte_array(10.try_into().unwrap()),
+            symbol: SYMBOL.format_as_byte_array(10.try_into().unwrap()),
             decimals: DECIMALS,
         );
     }
@@ -667,7 +684,8 @@ mod token_bridge_test {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
 
         let token_bridge_address = deploy_token_bridge();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Deploy a new token and deposit funds to this token.
         let l2_recipient = initial_owner();
@@ -694,7 +712,8 @@ mod token_bridge_test {
         let (l1_bridge_address, l1_token, l1_recipient) = get_default_l1_addresses();
 
         let token_bridge_address = deploy_token_bridge();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Deploy a new token and deposit funds to this token.
         let l2_recipient = initial_owner();
@@ -720,7 +739,8 @@ mod token_bridge_test {
         let (l1_bridge_address, l1_token, _) = get_default_l1_addresses();
 
         let token_bridge_address = deploy_token_bridge();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Deploy a new token and deposit funds to this token.
         let l2_recipient = initial_owner();
@@ -778,7 +798,8 @@ mod token_bridge_test {
         let stub_msg_receiver_address = deploy_stub_msg_receiver();
 
         let amount_to_deposit = default_amount();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Create a dummy message.
         let mut message = array![];
@@ -829,7 +850,8 @@ mod token_bridge_test {
         let token_bridge_address = deploy_token_bridge();
 
         let amount_to_deposit = default_amount();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Create a dummy contract that will be the account to deposit to.
         let stub_msg_receiver_address = deploy_stub_msg_receiver();
@@ -863,7 +885,8 @@ mod token_bridge_test {
         let token_bridge_address = deploy_token_bridge();
 
         let amount_to_deposit = default_amount();
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Create a dummy message.
         let mut message = array![];
@@ -891,8 +914,10 @@ mod token_bridge_test {
         set_caller_as_app_role_admin_app_governor(:token_bridge_address);
 
         // Set an arbitrary l1 bridge address.
-        let l1_bridge_address = EthAddress { address: DEFAULT_L1_BRIDGE_ETH_ADDRESS };
-        let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        // let l1_bridge_address = EthAddress { address: DEFAULT_L1_BRIDGE_ETH_ADDRESS };
+        let l1_bridge_address: ContractAddress = DEFAULT_L1_BRIDGE_ETH_ADDRESS.try_into().unwrap();
+        // let depositor = EthAddress { address: DEFAULT_DEPOSITOR_ETH_ADDRESS };
+        let depositor: ContractAddress = DEFAULT_DEPOSITOR_ETH_ADDRESS.try_into().unwrap();
 
         // Deploy token contract.
         let initial_owner = initial_owner();
@@ -912,7 +937,10 @@ mod token_bridge_test {
         starknet::testing::set_contract_address(token_bridge_address);
 
         // Simulate an "handle_token_deposit" l1 message from an incorrect Ethereum address.
-        let l1_not_bridge_address = EthAddress { address: NON_DEFAULT_L1_BRIDGE_ETH_ADDRESS };
+        // let l1_not_bridge_address = EthAddress { address: NON_DEFAULT_L1_BRIDGE_ETH_ADDRESS };
+        let l1_not_bridge_address: ContractAddress = NON_DEFAULT_L1_BRIDGE_ETH_ADDRESS
+            .try_into()
+            .unwrap();
         let mut token_bridge_state = TokenBridge::contract_state_for_testing();
         TokenBridge::handle_token_deposit(
             ref token_bridge_state,
