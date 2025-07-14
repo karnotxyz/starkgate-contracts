@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "dev"]
+    branches: [ "dev", "cairo-1" ]
   pull_request:
     types:
       - opened

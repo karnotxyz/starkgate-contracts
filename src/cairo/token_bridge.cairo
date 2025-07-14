@@ -216,7 +216,7 @@ mod TokenBridge {
         #[key]
         caller_address: ContractAddress,
         #[key]
-        id: u64,
+        id: u256,
     }
 
     // Legacy event, for backward competability. Emitted only for upgraded bridge when
@@ -558,7 +558,7 @@ mod TokenBridge {
             l1_token: ContractAddress,
             l1_recipient: ContractAddress,
             amount: u256,
-            id: u64,
+            id: u256,
         ) {
             self
                 .initiate_token_withdraw(
