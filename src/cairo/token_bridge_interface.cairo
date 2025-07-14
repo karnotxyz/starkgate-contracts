@@ -21,7 +21,7 @@ trait ITokenBridge<TContractState> {
         l1_token: ContractAddress,
         l1_recipient: ContractAddress,
         amount: u256,
-        id: u64,
+        id: u256,
     );
 }
 
