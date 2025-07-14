@@ -127,6 +127,7 @@ mod TokenBridge {
         L2TokenGovernanceChanged: L2TokenGovernanceChanged,
         withdraw_initiated: withdraw_initiated,
         WithdrawInitiated: WithdrawInitiated,
+        WithdrawInitiatedWithId: WithdrawInitiatedWithId,
         deposit_handled: deposit_handled,
         DepositHandled: DepositHandled,
         DepositWithMessageHandled: DepositWithMessageHandled,
@@ -203,6 +204,19 @@ mod TokenBridge {
         amount: u256,
         #[key]
         caller_address: ContractAddress,
+    }
+
+    #[derive(Copy, Drop, PartialEq, starknet::Event)]
+    struct WithdrawInitiatedWithId {
+        #[key]
+        l1_token: ContractAddress,
+        #[key]
+        l1_recipient: ContractAddress,
+        amount: u256,
+        #[key]
+        caller_address: ContractAddress,
+        #[key]
+        id: u64,
     }
 
     // Legacy event, for backward competability. Emitted only for upgraded bridge when
@@ -534,6 +548,29 @@ mod TokenBridge {
             );
             assert(result.is_ok(), 'MESSAGE_SEND_FAIILED');
             self.emit(WithdrawInitiated { l1_token, l1_recipient, amount, caller_address });
+        }
+
+
+        // Initiates an l2-to-l1 token withdraw, with an id.
+        // This id can be used to uniquely identify the withdraw offchain.
+        fn initiate_token_withdraw_with_id(
+            ref self: ContractState,
+            l1_token: ContractAddress,
+            l1_recipient: ContractAddress,
+            amount: u256,
+            id: u64,
+        ) {
+            self
+                .initiate_token_withdraw(
+                    l1_token: l1_token, l1_recipient: l1_recipient, amount: amount,
+                );
+
+            self
+                .emit(
+                    WithdrawInitiatedWithId {
+                        l1_token, l1_recipient, amount, caller_address: get_caller_address(), id,
+                    },
+                );
         }
     }
 

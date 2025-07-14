@@ -16,4 +16,12 @@ trait ITokenBridge<TContractState> {
         l1_recipient: ContractAddress,
         amount: u256,
     );
+    fn initiate_token_withdraw_with_id(
+        ref self: TContractState,
+        l1_token: ContractAddress,
+        l1_recipient: ContractAddress,
+        amount: u256,
+        id: u64,
+    );
 }
+
